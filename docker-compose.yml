@@ -85,6 +85,99 @@ services:
       - api-gateway
     restart: unless-stopped
 
+# patient-db:
+#     image: postgres:16
+#     container_name: patient-postgres
+#     restart: always
+#     environment:
+#       POSTGRES_DB: patient_db
+#       POSTGRES_USER: postgres
+#       POSTGRES_PASSWORD: postgres
+#     ports:
+#       - "5432:5432"
+#     volumes:
+#       - patient_db_data:/var/lib/postgresql/data
+#       - ./patient-service/sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+#     healthcheck:
+#       test: ["CMD-SHELL", "pg_isready -U postgres -d patient_db"]
+#       interval: 10s
+#       timeout: 5s
+#       retries: 10
+
+# appointment-db:
+#     image: postgres:16
+#     container_name: appointment-postgres
+#     restart: always
+#     environment:
+#       POSTGRES_DB: appointment_db
+#       POSTGRES_USER: postgres
+#       POSTGRES_PASSWORD: postgres
+#     ports:
+#       - "54327:5432"
+#     volumes:
+#       - appointment_db_data:/var/lib/postgresql/data
+#       - ./appointment-service/sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+#     healthcheck:
+#       test: ["CMD-SHELL", "pg_isready -U postgres -d appointment_db"]
+#       interval: 10s
+#       timeout: 5s
+#       retries: 10
+
+# patient-service:
+#     build: ./patient-service
+#     container_name: patient-standalone
+#     restart: always
+#     ports:
+#       - "3005:3005"
+#     env_file:
+#       - ./patient-service/.env
+#     depends_on:
+#       patient-db:
+#         condition: service_healthy
+#     volumes:
+#       - patient_uploads:/app/uploads
+
+# appointment-service:
+#     build: ./appointment-service
+#     container_name: appointment-standalone
+#     restart: always
+#     ports:
+#       - "3006:3006"
+#     env_file:
+#       - ./appointment-service/.env
+#     depends_on:
+#       appointment-db:
+#         condition: service_healthy
+
+# frontend_amaya:
+#     build: ./frontend_amaya
+#     container_name: # frontend_amaya:
+#     restart: always
+#     ports:
+#       - "5173:5173"
+#     depends_on:
+#       - patient-service
+#       - appointment-service
+
+# pgadmin:
+#     image: dpage/pgadmin4:latest
+#     container_name: healthcare-pgadmin
+#     restart: always
+#     environment:
+#       PGADMIN_DEFAULT_EMAIL: admin@admin.com
+#       PGADMIN_DEFAULT_PASSWORD: admin
+#     ports:
+#       - "5050:80"
+#     depends_on:
+#       - patient-db
+#       - appointment-db
+#     volumes:
+#       - pgadmin_data:/var/lib/pgadmin
+
 volumes:
   auth_db_data:
   doctor_db_data:
+  # patient_db_data:
+  # appointment_db_data:
+  # patient_uploads:
+  # pgadmin_data:
