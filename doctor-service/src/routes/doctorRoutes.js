@@ -2,7 +2,7 @@ const express = require('express');
 const {
   getAllDoctors, getAllSpecialties, getOneDoctor, getMyDoctorProfile,
   createDoctorProfile, updateMyDoctorProfile, adminVerifyDoctor,
-  adminListAllDoctors, adminDoctorStats
+  adminListAllDoctors, adminDoctorStats, rateDoctor
 } = require('../controllers/doctorController');
 const { authenticateToken, authorizeRoles } = require('../middleware/authMiddleware');
 const availabilityRoutes = require('./availabilityRoutes');
@@ -28,5 +28,17 @@ router.use('/me/availability', authenticateToken, authorizeRoles('Doctor'), avai
 
 // ── Public: single doctor by ID (wildcard — must come last) ──────────────────
 router.get('/:id', getOneDoctor);
+// Rate a doctor — logged-in Patients only
+router.post('/:id/rate', authenticateToken, authorizeRoles('Patient'), rateDoctor);
+// Public: doctor availability slots (active only, for patient booking UI)
+router.get('/:id/availability', async (req, res) => {
+  try {
+    const Availability = require('../models/Availability');
+    const slots = await Availability.getSlotsByDoctorId(req.params.id);
+    res.json({ slots: slots.filter(s => s.is_available) });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
 
 module.exports = router;

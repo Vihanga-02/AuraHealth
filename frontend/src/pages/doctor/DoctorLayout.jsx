@@ -1,17 +1,15 @@
 import { Outlet } from 'react-router-dom';
 import DoctorSidebar from '../../components/DoctorSidebar';
 
-const DoctorLayout = () => {
+export default function DoctorLayout() {
   return (
-    <div className="flex min-h-[calc(100vh-64px)] bg-slate-50">
+    <div className="flex bg-slate-50 min-h-screen">
       <DoctorSidebar />
-      <main className="flex-1 ml-64 p-8">
+      <main className="flex-1 ml-64 p-8 min-h-screen overflow-y-auto">
         <div className="max-w-6xl mx-auto">
           <Outlet />
         </div>
       </main>
     </div>
   );
-};
-
-export default DoctorLayout;
+}

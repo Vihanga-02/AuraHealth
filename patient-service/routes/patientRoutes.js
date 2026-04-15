@@ -6,18 +6,20 @@ const {
   getMyPatientProfile,
   getAllPatients,
   getPatientById,
+  getPatientByUserId,
   updatePatient,
   addReport,
   getReportsByPatient,
   deleteReport,
   addPrescription,
+  addPrescriptionByUserId,
   getPrescriptionsByPatient,
-  getPatientHistory
+  getPatientHistory,
 } = require("../controllers/patientController");
 
 const {
-  verifyToken,
-  allowRoles,
+  authenticateToken,
+  authorizeRoles,
   allowPatientOwnerOrRoles
 } = require("../middleware/authMiddleware");
 
@@ -27,48 +29,54 @@ router.get("/ping", (req, res) => {
   res.json({ message: "patient route works" });
 });
 
-router.post("/profile", verifyToken, allowRoles("PATIENT"), createPatientProfile);
-router.get("/me", verifyToken, allowRoles("PATIENT"), getMyPatientProfile);
-router.get("/", verifyToken, allowRoles("ADMIN"), getAllPatients);
+router.post("/profile", authenticateToken, authorizeRoles("Patient"), createPatientProfile);
+router.get("/me", authenticateToken, authorizeRoles("Patient"), getMyPatientProfile);
+router.get("/", authenticateToken, authorizeRoles("Admin"), getAllPatients);
 
-router.get("/:id", verifyToken, allowPatientOwnerOrRoles("ADMIN", "DOCTOR"), getPatientById);
-router.put("/:id", verifyToken, allowPatientOwnerOrRoles("ADMIN"), updatePatient);
+// ── Doctor/Admin: look up patient profile by auth user ID ────────────────
+router.get("/by-user/:userId", authenticateToken, authorizeRoles("Doctor", "Admin"), getPatientByUserId);
+
+// ── Doctor/Admin: add prescription using patient's auth user ID ──────────
+router.post("/by-user/:userId/prescriptions", authenticateToken, authorizeRoles("Doctor", "Admin"), addPrescriptionByUserId);
+
+router.get("/:id", authenticateToken, allowPatientOwnerOrRoles("Admin", "Doctor"), getPatientById);
+router.put("/:id", authenticateToken, allowPatientOwnerOrRoles("Admin"), updatePatient);
 
 router.post(
   "/:id/reports",
-  verifyToken,
-  allowPatientOwnerOrRoles("ADMIN"),
+  authenticateToken,
+  allowPatientOwnerOrRoles("Admin"),
   upload.single("reportFile"),
   addReport
 );
 
 router.get(
   "/:id/reports",
-  verifyToken,
-  allowPatientOwnerOrRoles("ADMIN", "DOCTOR"),
+  authenticateToken,
+  allowPatientOwnerOrRoles("Admin", "Doctor"),
   getReportsByPatient
 );
 
 router.delete(
   "/:id/reports/:reportId",
-  verifyToken,
-  allowPatientOwnerOrRoles("ADMIN"),
+  authenticateToken,
+  allowPatientOwnerOrRoles("Admin"),
   deleteReport
 );
 
-router.post("/:id/prescriptions", verifyToken, allowRoles("DOCTOR", "ADMIN"), addPrescription);
+router.post("/:id/prescriptions", authenticateToken, authorizeRoles("Doctor", "Admin"), addPrescription);
 
 router.get(
   "/:id/prescriptions",
-  verifyToken,
-  allowPatientOwnerOrRoles("ADMIN", "DOCTOR"),
+  authenticateToken,
+  allowPatientOwnerOrRoles("Admin", "Doctor"),
   getPrescriptionsByPatient
 );
 
 router.get(
   "/:id/history",
-  verifyToken,
-  allowPatientOwnerOrRoles("ADMIN", "DOCTOR"),
+  authenticateToken,
+  allowPatientOwnerOrRoles("Admin", "Doctor"),
   getPatientHistory
 );
 

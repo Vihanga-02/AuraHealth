@@ -1,18 +1,10 @@
 -- Patient Service Database Schema
-
-CREATE TABLE IF NOT EXISTS users (
-  id SERIAL PRIMARY KEY,
-  name VARCHAR(150) NOT NULL,
-  email VARCHAR(150) NOT NULL UNIQUE,
-  password VARCHAR(255) NOT NULL,
-  role VARCHAR(20) NOT NULL CHECK (role IN ('PATIENT', 'DOCTOR', 'ADMIN')),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+-- NOTE: Auth lives in auth-service. This DB stores patient records keyed by auth-service `user_id`.
+-- Do NOT maintain a separate `users` table here to avoid ID/FK conflicts.
 
 CREATE TABLE IF NOT EXISTS patients (
   id SERIAL PRIMARY KEY,
-  user_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL UNIQUE,
   full_name VARCHAR(150) NOT NULL,
   email VARCHAR(150) NOT NULL,
   phone VARCHAR(30) NOT NULL,
@@ -31,7 +23,7 @@ CREATE TABLE IF NOT EXISTS patients (
 CREATE TABLE IF NOT EXISTS reports (
   id SERIAL PRIMARY KEY,
   patient_id INTEGER NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
-  uploaded_by INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  uploaded_by INTEGER NOT NULL,
   report_title VARCHAR(200) NOT NULL,
   report_type VARCHAR(100) DEFAULT 'General',
   file_name VARCHAR(255) NOT NULL,
@@ -52,29 +44,4 @@ CREATE TABLE IF NOT EXISTS prescriptions (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-INSERT INTO users (name, email, password, role)
-VALUES
-  ('Test Patient', 'testpatient@aurahealth.lk', '123456', 'PATIENT'),
-  ('Admin User', 'admin@aurahealth.lk', '123456', 'ADMIN')
-ON CONFLICT (email) DO NOTHING;
-
-INSERT INTO patients (
-  user_id, full_name, email, phone, date_of_birth, gender, address,
-  blood_group, allergies, chronic_conditions, emergency_contact_name, emergency_contact_phone
-)
-SELECT
-  u.id,
-  'Test Patient',
-  'testpatient@aurahealth.lk',
-  '0711234567',
-  '2000-05-10',
-  'Female',
-  'Colombo',
-  'A+',
-  'Dust',
-  'Asthma',
-  'Nimal Perera',
-  '0771234567'
-FROM users u
-WHERE u.email = 'testpatient@aurahealth.lk'
-ON CONFLICT (user_id) DO NOTHING;
+-- Seed data intentionally omitted: profiles are created via API using JWT user_id.

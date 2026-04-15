@@ -6,19 +6,27 @@ const {
   getMyAppointments,
   updateAppointment,
   cancelAppointment,
-  updateAppointmentStatus
+  updateAppointmentStatus,
+  confirmAppointment,
+  getDoctorAppointments,
+  doctorSetStatus
 } = require("../controllers/appointmentController");
 
 const {
-  verifyToken,
-  allowRoles,
+  authenticateToken,
+  authorizeRoles,
+  allowInternalOrRoles,
   allowAppointmentOwnerOrRoles
 } = require("../middleware/authMiddleware");
 
-router.post("/", verifyToken, allowRoles("PATIENT"), createAppointment);
-router.get("/my", verifyToken, allowRoles("PATIENT"), getMyAppointments);
-router.put("/:id", verifyToken, allowAppointmentOwnerOrRoles("ADMIN"), updateAppointment);
-router.patch("/:id/cancel", verifyToken, allowAppointmentOwnerOrRoles("ADMIN"), cancelAppointment);
-router.patch("/:id/status", verifyToken, allowRoles("ADMIN"), updateAppointmentStatus);
+router.post("/", authenticateToken, authorizeRoles("Patient"), createAppointment);
+router.get("/my", authenticateToken, authorizeRoles("Patient"), getMyAppointments);
+router.get("/doctor/my", authenticateToken, authorizeRoles("Doctor"), getDoctorAppointments);
+router.put("/:id", authenticateToken, allowAppointmentOwnerOrRoles("Admin"), updateAppointment);
+router.patch("/:id/cancel", authenticateToken, allowAppointmentOwnerOrRoles("Admin"), cancelAppointment);
+router.patch("/:id/status", authenticateToken, authorizeRoles("Admin"), updateAppointmentStatus);
+router.patch("/:id/doctor-status", authenticateToken, authorizeRoles("Doctor"), doctorSetStatus);
+// No authenticateToken here — allowInternalOrRoles handles both internal token and JWT
+router.put("/:id/confirm", allowInternalOrRoles("Admin"), confirmAppointment);
 
 module.exports = router;

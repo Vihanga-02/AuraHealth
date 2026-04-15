@@ -1,57 +1,84 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-const DoctorSidebar = () => {
-  const location = useLocation();
-  const { user } = useAuth();
+const NAV = [
+  { name: 'Dashboard',    path: '/doctor/dashboard',         icon: '📊' },
+  { name: 'My Profile',   path: '/doctor/profile',           icon: '👨‍⚕️' },
+  { name: 'Availability', path: '/doctor/availability',      icon: '📅' },
+  { name: 'Appointments', path: '/doctor/appointments',      icon: '🩺' },
+  { name: 'Patients',     path: '/doctor/patients',          icon: '👥' },
+  { name: 'Telemedicine', path: '/doctor/telemedicine/manage', icon: '📹' },
+];
 
-  const navItems = [
-    { name: 'Dashboard', path: '/doctor/dashboard', icon: '📊' },
-    { name: 'My Profile', path: '/doctor/profile', icon: '👨‍⚕️' },
-    { name: 'Availability', path: '/doctor/availability', icon: '📅' },
-    { name: 'Appointments', path: '/doctor/appointments', icon: '🩺' },
-    { name: 'Patients', path: '/doctor/patients', icon: '👥' },
-    { name: 'Settings', path: '/doctor/settings', icon: '⚙️' },
-  ];
+const DoctorSidebar = () => {
+  const location  = useLocation();
+  const navigate  = useNavigate();
+  const { user, logout } = useAuth();
+
+  const handleLogout = () => { logout(); navigate('/login'); };
 
   return (
-    <aside className="w-64 bg-white border-r border-slate-200 h-[calc(100vh-64px)] fixed top-16 left-0 overflow-y-auto flex flex-col">
-      <div className="p-6 border-b border-slate-100">
-        <h2 className="font-bold text-lg text-slate-800">Doctor Portal</h2>
-        <p className="text-sm text-slate-500 truncate">{user?.full_name || 'Doctor'}</p>
+    <aside className="w-64 bg-white border-r border-slate-200 h-screen fixed top-0 left-0 overflow-y-auto flex flex-col z-40">
+      {/* Home shortcut */}
+      <Link
+        to="/"
+        className="flex items-center gap-2 px-5 py-3 border-b border-slate-100 hover:bg-blue-50 transition-colors group"
+        title="Back to website"
+      >
+        <span className="text-xl">🏠</span>
+        <span className="text-sm font-semibold text-blue-600 group-hover:text-blue-700">AuraHealth</span>
+      </Link>
+
+      {/* Portal header */}
+      <div className="px-5 py-4 border-b border-slate-100">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-sm shrink-0">
+            {(user?.full_name || 'D')[0].toUpperCase()}
+          </div>
+          <div className="min-w-0">
+            <div className="text-sm font-bold text-slate-800 truncate">{user?.full_name || 'Doctor'}</div>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className={`w-2 h-2 rounded-full ${user?.is_active ? 'bg-green-500' : 'bg-yellow-400'}`} />
+              <span className="text-xs text-slate-400">{user?.is_active ? 'Active' : 'Pending Review'}</span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <nav className="flex-1 p-4 space-y-1">
-        {navItems.map((item) => {
-          const isActive = location.pathname === item.path;
+      {/* Navigation */}
+      <nav className="flex-1 px-3 py-4 space-y-1">
+        {NAV.map((item) => {
+          const isActive =
+            item.path === '/doctor/appointments'
+              ? location.pathname === '/doctor/appointments'
+              : location.pathname === item.path ||
+                location.pathname.startsWith(`${item.path}/`);
           return (
             <Link
               key={item.path}
               to={item.path}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-                isActive 
-                  ? 'bg-blue-50 text-blue-700' 
+              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                isActive
+                  ? 'bg-blue-50 text-blue-700'
                   : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
               }`}
             >
-              <span className="text-lg">{item.icon}</span>
+              <span className="text-base">{item.icon}</span>
               {item.name}
             </Link>
           );
         })}
       </nav>
-      
-      <div className="p-4 border-t border-slate-100">
-        <div className="bg-slate-50 p-4 rounded-lg">
-          <p className="text-xs font-semibold text-slate-500 uppercase mb-2">Status</p>
-          <div className="flex items-center gap-2">
-             {/* Check if user active is here or doctor verification, assuming from user context */}
-            <span className={`w-2.5 h-2.5 rounded-full ${user.is_active ? 'bg-green-500' : 'bg-yellow-500'}`}></span>
-            <span className="text-sm font-medium text-slate-700">
-              {user.is_active ? 'Active' : 'Pending Review'}
-            </span>
-          </div>
-        </div>
+
+      {/* Bottom: logout */}
+      <div className="px-3 py-4 border-t border-slate-100">
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-3 w-full px-4 py-2.5 rounded-lg text-sm font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-800 transition-colors"
+        >
+          <span className="text-base">🚪</span>
+          Logout
+        </button>
       </div>
     </aside>
   );

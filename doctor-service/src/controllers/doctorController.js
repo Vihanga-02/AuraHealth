@@ -1,5 +1,18 @@
 const Doctor = require('../models/Doctor');
 
+// POST /doctors/:id/rate  (logged-in Patient only)
+const rateDoctor = async (req, res) => {
+  try {
+    const rating = Number(req.body.rating);
+    if (!Number.isFinite(rating) || rating < 1 || rating > 5) {
+      return res.status(400).json({ message: 'Rating must be a number between 1 and 5' });
+    }
+    const doctor = await Doctor.rateDoctor(req.params.id, rating);
+    if (!doctor) return res.status(404).json({ message: 'Doctor not found' });
+    res.json({ message: 'Rating submitted', doctor });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
 // GET /doctors?specialty=&search=
 const getAllDoctors = async (req, res) => {
   try {
@@ -89,5 +102,5 @@ const adminDoctorStats = async (_req, res) => {
 module.exports = {
   getAllDoctors, getAllSpecialties, getOneDoctor, getMyDoctorProfile,
   createDoctorProfile, updateMyDoctorProfile, adminVerifyDoctor,
-  adminListAllDoctors, adminDoctorStats,
+  adminListAllDoctors, adminDoctorStats, rateDoctor,
 };

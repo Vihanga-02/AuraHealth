@@ -1,32 +1,28 @@
 const jwt = require("jsonwebtoken");
 const db = require("../config/db");
 
-const verifyToken = (req, res, next) => {
-  // Mock user for standalone mode
-  req.user = {
-    id: 1,
-    name: "Default Patient",
-    email: "patient@example.com",
-    role: "PATIENT"
-  };
-
-  const authHeader = req.headers.authorization;
-  if (authHeader && authHeader.startsWith("Bearer ")) {
-    try {
-      const token = authHeader.split(" ")[1];
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      req.user = decoded;
-    } catch (error) {
-      console.log("Mock Auth: Invalid token, using default user");
-    }
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers.authorization || "";
+  if (!authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ message: "Access token required" });
   }
-  next();
+
+  const token = authHeader.slice("Bearer ".length).trim();
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+    return next();
+  } catch (_error) {
+    return res.status(401).json({ message: "Invalid or expired token" });
+  }
 };
 
-const allowRoles = (...roles) => {
+const authorizeRoles = (...roles) => {
   return (req, res, next) => {
-    // In standalone mode, we allow all roles for now
-    next();
+    if (!req.user || !roles.includes(req.user.role)) {
+      return res.status(403).json({ message: "Access forbidden: insufficient permissions" });
+    }
+    return next();
   };
 };
 
@@ -41,7 +37,7 @@ const allowPatientOwnerOrRoles = (...roles) => {
         return next();
       }
 
-      if (req.user.role !== "PATIENT") {
+      if (req.user.role !== "Patient") {
         return res.status(403).json({ message: "Forbidden" });
       }
 
@@ -88,4 +84,4 @@ const allowPatientOwnerOrRoles = (...roles) => {
   };
 };
 
-module.exports = { verifyToken, allowRoles, allowPatientOwnerOrRoles };
+module.exports = { authenticateToken, authorizeRoles, allowPatientOwnerOrRoles };

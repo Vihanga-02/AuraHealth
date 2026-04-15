@@ -2,6 +2,8 @@ const db = require("../config/db");
 
 const mapAppointment = (row) => ({
   _id: row.id,
+  doctorId: row.doctor_id,
+  doctorUserId: row.doctor_user_id,
   patientUserId: row.patient_user_id,
   patientName: row.patient_name,
   appointmentDate: row.appointment_date,
@@ -20,13 +22,15 @@ const Appointment = {
       `
       INSERT INTO appointments
       (
-        patient_user_id, patient_name, appointment_date,
+        doctor_id, doctor_user_id, patient_user_id, patient_name, appointment_date,
         appointment_time, visit_type, notes, status, video_link
       )
-      VALUES ($1,$2,$3,$4,$5,$6,'PENDING',$7)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'PENDING',$9)
       RETURNING *
       `,
       [
+        data.doctorId || null,
+        data.doctorUserId || null,
         data.patientUserId,
         data.patientName,
         data.appointmentDate,
@@ -49,6 +53,21 @@ const Appointment = {
     }
 
     sql += ` ORDER BY appointment_date ASC, appointment_time ASC`;
+
+    const result = await db.query(sql, params);
+    return result.rows;
+  },
+
+  findAllByDoctor: async (doctorUserId, status) => {
+    let sql = `SELECT * FROM appointments WHERE doctor_user_id = $1`;
+    const params = [doctorUserId];
+
+    if (status) {
+      sql += ` AND status = $2`;
+      params.push(status);
+    }
+
+    sql += ` ORDER BY appointment_date DESC, appointment_time ASC`;
 
     const result = await db.query(sql, params);
     return result.rows;

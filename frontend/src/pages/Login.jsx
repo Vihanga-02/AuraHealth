@@ -21,6 +21,7 @@ const Login = () => {
       const role = data.user.role;
       if (role === 'Admin') navigate('/admin/dashboard');
       else if (role === 'Doctor') navigate('/doctor/dashboard');
+      else if (role === 'Patient') navigate('/patient/dashboard');
       else navigate('/');
     } catch (err) {
       setError(err?.response?.data?.message || 'Login failed. Please try again.');

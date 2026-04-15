@@ -27,6 +27,8 @@ const Navbar = () => {
             <div className="hidden md:flex ml-10 space-x-8">
               <Link to="/" className="text-slate-600 hover:text-blue-600 font-medium">Home</Link>
               <Link to="/doctors" className="text-slate-600 hover:text-blue-600 font-medium">Find a Doctor</Link>
+              <Link to="/services" className="text-slate-600 hover:text-blue-600 font-medium">Services</Link>
+              <Link to="/about" className="text-slate-600 hover:text-blue-600 font-medium">About</Link>
             </div>
           </div>
 
@@ -44,6 +46,9 @@ const Navbar = () => {
                 )}
                 {user.role === 'Doctor' && (
                   <Link to="/doctor/dashboard" className={btnSecondarySm}>Dashboard</Link>
+                )}
+                {user.role === 'Patient' && (
+                  <Link to="/patient/dashboard" className={btnSecondarySm}>Dashboard</Link>
                 )}
                 
                 <button onClick={handleLogout} className={btnGhostSm}>Logout</button>

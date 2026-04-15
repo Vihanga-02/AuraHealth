@@ -30,6 +30,95 @@ services:
       timeout: 5s
       retries: 5
 
+  patient-db:
+    image: postgres:16-alpine
+    container_name: aura_patient_db
+    environment:
+      POSTGRES_DB: patient_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - patient_db_data:/var/lib/postgresql/data
+      - ./patient-service/sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5435:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  appointment-db:
+    image: postgres:16-alpine
+    container_name: aura_appointment_db
+    environment:
+      POSTGRES_DB: appointment_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - appointment_db_data:/var/lib/postgresql/data
+      - ./appointment-service/sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5436:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  payment-db:
+    image: postgres:16-alpine
+    container_name: aura_payment_db
+    environment:
+      POSTGRES_DB: payment_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - payment_db_data:/var/lib/postgresql/data
+      - ./payment-service/src/database/schema.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5437:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  notification-db:
+    image: postgres:16-alpine
+    container_name: aura_notification_db
+    environment:
+      POSTGRES_DB: notification_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - notification_db_data:/var/lib/postgresql/data
+      - ./notification-service/src/database/schema.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5438:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  telemedicine-db:
+    image: postgres:16-alpine
+    container_name: aura_telemedicine_db
+    environment:
+      POSTGRES_DB: telemedicine_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - telemedicine_db_data:/var/lib/postgresql/data
+    ports:
+      - "5439:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   #Backend Services
   auth-service:
     build:
@@ -57,6 +146,77 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  patient-service:
+    build:
+      context: ./patient-service
+      dockerfile: Dockerfile
+    container_name: aura_patient_service
+    env_file: ./patient-service/.env
+    ports:
+      - "5003:5003"
+    depends_on:
+      patient-db:
+        condition: service_healthy
+    volumes:
+      - patient_uploads:/app/uploads
+    restart: unless-stopped
+
+  appointment-service:
+    build:
+      context: ./appointment-service
+      dockerfile: Dockerfile
+    container_name: aura_appointment_service
+    env_file: ./appointment-service/.env
+    ports:
+      - "5004:5004"
+    depends_on:
+      appointment-db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  payment-service:
+    build:
+      context: ./payment-service
+      dockerfile: Dockerfile
+    container_name: aura_payment_service
+    env_file: ./payment-service/.env  
+    ports:
+      - "5005:5005"
+    depends_on:
+      payment-db:
+        condition: service_healthy
+      appointment-service:
+        condition: service_started
+      notification-service:
+        condition: service_started
+    restart: unless-stopped
+
+  notification-service:
+    build:
+      context: ./notification-service
+      dockerfile: Dockerfile
+    container_name: aura_notification_service
+    env_file: ./notification-service/.env
+    ports:
+      - "5006:5006"
+    depends_on:
+      notification-db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  telemedicine-service:
+    build:
+      context: ./telemedicine-service
+      dockerfile: Dockerfile
+    container_name: aura_telemedicine_service
+    env_file: ./telemedicine-service/.env
+    ports:
+      - "5007:5007"
+    depends_on:
+      telemedicine-db:
+        condition: service_healthy
+    restart: unless-stopped
+
   # API Gateway
   api-gateway:
     build:
@@ -69,11 +229,14 @@ services:
     depends_on:
       - auth-service
       - doctor-service
+      - patient-service
+      - appointment-service
+      - payment-service
+      - notification-service
+      - telemedicine-service
     restart: unless-stopped
 
   # Frontend
-  # Image build bakes VITE_API_BASE_URL (Dockerfile defaults to /api for nginx same-origin proxy).
-  # Use frontend/.env when running Vite locally (npm run dev), not inside this container.
   frontend:
     build:
       context: ./frontend
@@ -85,79 +248,6 @@ services:
       - api-gateway
     restart: unless-stopped
 
-# patient-db:
-#     image: postgres:16
-#     container_name: patient-postgres
-#     restart: always
-#     environment:
-#       POSTGRES_DB: patient_db
-#       POSTGRES_USER: postgres
-#       POSTGRES_PASSWORD: postgres
-#     ports:
-#       - "5432:5432"
-#     volumes:
-#       - patient_db_data:/var/lib/postgresql/data
-#       - ./patient-service/sql/init.sql:/docker-entrypoint-initdb.d/init.sql
-#     healthcheck:
-#       test: ["CMD-SHELL", "pg_isready -U postgres -d patient_db"]
-#       interval: 10s
-#       timeout: 5s
-#       retries: 10
-
-# appointment-db:
-#     image: postgres:16
-#     container_name: appointment-postgres
-#     restart: always
-#     environment:
-#       POSTGRES_DB: appointment_db
-#       POSTGRES_USER: postgres
-#       POSTGRES_PASSWORD: postgres
-#     ports:
-#       - "54327:5432"
-#     volumes:
-#       - appointment_db_data:/var/lib/postgresql/data
-#       - ./appointment-service/sql/init.sql:/docker-entrypoint-initdb.d/init.sql
-#     healthcheck:
-#       test: ["CMD-SHELL", "pg_isready -U postgres -d appointment_db"]
-#       interval: 10s
-#       timeout: 5s
-#       retries: 10
-
-# patient-service:
-#     build: ./patient-service
-#     container_name: patient-standalone
-#     restart: always
-#     ports:
-#       - "3005:3005"
-#     env_file:
-#       - ./patient-service/.env
-#     depends_on:
-#       patient-db:
-#         condition: service_healthy
-#     volumes:
-#       - patient_uploads:/app/uploads
-
-# appointment-service:
-#     build: ./appointment-service
-#     container_name: appointment-standalone
-#     restart: always
-#     ports:
-#       - "3006:3006"
-#     env_file:
-#       - ./appointment-service/.env
-#     depends_on:
-#       appointment-db:
-#         condition: service_healthy
-
-# frontend_amaya:
-#     build: ./frontend_amaya
-#     container_name: # frontend_amaya:
-#     restart: always
-#     ports:
-#       - "5173:5173"
-#     depends_on:
-#       - patient-service
-#       - appointment-service
 
 # pgadmin:
 #     image: dpage/pgadmin4:latest
@@ -177,7 +267,9 @@ services:
 volumes:
   auth_db_data:
   doctor_db_data:
-  # patient_db_data:
-  # appointment_db_data:
-  # patient_uploads:
-  # pgadmin_data:
+  patient_db_data:
+  appointment_db_data:
+  payment_db_data:
+  notification_db_data:
+  telemedicine_db_data:
+  patient_uploads:
