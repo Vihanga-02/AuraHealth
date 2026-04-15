@@ -1,14 +1,10 @@
-const {
-  listDoctors, getDoctorById, getDoctorByUserId,
-  createDoctor, updateOwnProfile, verifyDoctor, getSpecialties
-} = require('../services/doctorService');
-const DoctorModel = require('../models/Doctor');
+const Doctor = require('../models/Doctor');
 
 // GET /doctors?specialty=&search=
 const getAllDoctors = async (req, res) => {
   try {
     const { specialty, search } = req.query;
-    const doctors = await listDoctors({ specialty, search, verified: true });
+    const doctors = await Doctor.listDoctors({ specialty, search, verified: true });
     res.json({ doctors });
   } catch (err) { res.status(500).json({ message: err.message }); }
 };
@@ -16,7 +12,7 @@ const getAllDoctors = async (req, res) => {
 // GET /doctors/specialties
 const getAllSpecialties = async (_req, res) => {
   try {
-    const specialties = await getSpecialties();
+    const specialties = await Doctor.getSpecialties();
     res.json({ specialties });
   } catch (err) { res.status(500).json({ message: err.message }); }
 };
@@ -24,7 +20,7 @@ const getAllSpecialties = async (_req, res) => {
 // GET /doctors/:id
 const getOneDoctor = async (req, res) => {
   try {
-    const doctor = await getDoctorById(req.params.id);
+    const doctor = await Doctor.getDoctorById(req.params.id);
     if (!doctor) return res.status(404).json({ message: 'Doctor not found' });
     res.json({ doctor });
   } catch (err) { res.status(500).json({ message: err.message }); }
@@ -33,7 +29,7 @@ const getOneDoctor = async (req, res) => {
 // GET /doctors/me/profile
 const getMyDoctorProfile = async (req, res) => {
   try {
-    const doctor = await getDoctorByUserId(req.user.id);
+    const doctor = await Doctor.getDoctorByUserId(req.user.id);
     if (!doctor) return res.status(404).json({ message: 'Doctor profile not found. Please create one.' });
     res.json({ doctor });
   } catch (err) { res.status(500).json({ message: err.message }); }
@@ -46,10 +42,10 @@ const createDoctorProfile = async (req, res) => {
     if (!full_name || !specialty) {
       return res.status(400).json({ message: 'full_name and specialty are required' });
     }
-    const existing = await getDoctorByUserId(req.user.id);
+    const existing = await Doctor.getDoctorByUserId(req.user.id);
     if (existing) return res.status(400).json({ message: 'Doctor profile already exists' });
 
-    const doctor = await createDoctor({ user_id: req.user.id, ...req.body });
+    const doctor = await Doctor.createDoctor({ user_id: req.user.id, ...req.body });
     res.status(201).json({ doctor });
   } catch (err) { res.status(400).json({ message: err.message }); }
 };
@@ -57,7 +53,7 @@ const createDoctorProfile = async (req, res) => {
 // PUT /doctors/me/profile
 const updateMyDoctorProfile = async (req, res) => {
   try {
-    const doctor = await updateOwnProfile({ user_id: req.user.id, ...req.body });
+    const doctor = await Doctor.updateOwnProfile({ user_id: req.user.id, ...req.body });
     if (!doctor) return res.status(404).json({ message: 'Doctor profile not found' });
     res.json({ doctor });
   } catch (err) { res.status(400).json({ message: err.message }); }
@@ -67,7 +63,7 @@ const updateMyDoctorProfile = async (req, res) => {
 const adminVerifyDoctor = async (req, res) => {
   try {
     const verified = req.body.verified === true || req.body.verified === 'true';
-    const doctor = await verifyDoctor(req.params.id, verified);
+    const doctor = await Doctor.verifyDoctor(req.params.id, verified);
     if (!doctor) return res.status(404).json({ message: 'Doctor not found' });
     res.json({ doctor, message: `Doctor ${verified ? 'verified' : 'unverified'} successfully` });
   } catch (err) { res.status(500).json({ message: err.message }); }
@@ -77,7 +73,7 @@ const adminVerifyDoctor = async (req, res) => {
 const adminListAllDoctors = async (req, res) => {
   try {
     const { specialty, search } = req.query;
-    const doctors = await listDoctors({ specialty, search });
+    const doctors = await Doctor.listDoctors({ specialty, search });
     res.json({ doctors });
   } catch (err) { res.status(500).json({ message: err.message }); }
 };
@@ -85,7 +81,7 @@ const adminListAllDoctors = async (req, res) => {
 // GET /doctors/admin/stats  (Admin only)
 const adminDoctorStats = async (_req, res) => {
   try {
-    const stats = await DoctorModel.getDoctorStats();
+    const stats = await Doctor.getDoctorStats();
     res.json({ stats });
   } catch (err) { res.status(500).json({ message: err.message }); }
 };
