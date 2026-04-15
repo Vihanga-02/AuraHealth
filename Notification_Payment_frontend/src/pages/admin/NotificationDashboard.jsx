@@ -17,8 +17,8 @@ const NotificationDashboard = () => {
       const url = 'http://localhost:5006/api/notifications';
       const response = await axios.get(url);
       if (response.data.success) {
-        setData(response.data.data);
-        setStats(response.data.stats);
+        setData(response.data.data.notifications);
+        setStats(response.data.data.stats);
       } else {
         setError('Failed to fetch data');
       }
