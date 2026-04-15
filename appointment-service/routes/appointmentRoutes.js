@@ -19,6 +19,6 @@ router.post("/", verifyToken, allowRoles("PATIENT"), createAppointment);
 router.get("/my", verifyToken, allowRoles("PATIENT"), getMyAppointments);
 router.put("/:id", verifyToken, allowAppointmentOwnerOrRoles("ADMIN"), updateAppointment);
 router.patch("/:id/cancel", verifyToken, allowAppointmentOwnerOrRoles("ADMIN"), cancelAppointment);
-router.patch("/:id/status", verifyToken, allowRoles("DOCTOR", "ADMIN"), updateAppointmentStatus);
+router.patch("/:id/status", verifyToken, allowRoles("ADMIN"), updateAppointmentStatus);
 
 module.exports = router;

@@ -111,14 +111,6 @@ export const patientApi = {
 };
 
 export const appointmentApi = {
-  getDoctors: ({ specialty = "", search = "", location = "" } = {}) =>
-    appointmentRequest(
-      `/doctors?specialty=${encodeURIComponent(specialty)}&search=${encodeURIComponent(search)}&location=${encodeURIComponent(location)}`,
-      {
-        headers: createHeaders(false)
-      }
-    ),
-
   createAppointment: (payload) =>
     appointmentRequest("/appointments", {
       method: "POST",

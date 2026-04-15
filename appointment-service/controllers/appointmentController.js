@@ -1,42 +1,29 @@
 const { Appointment, mapAppointment } = require("../models/Appointment");
-const { Doctor } = require("../models/Doctor");
 
 const createAppointment = async (req, res) => {
   try {
-    const { doctorId, appointmentDate, appointmentTime, visitType, notes } = req.body;
+    const {appointmentDate, appointmentTime, visitType, notes } = req.body;
 
-    if (!doctorId || !appointmentDate || !appointmentTime) {
-      return res.status(400).json({ message: "doctorId, appointmentDate and appointmentTime are required" });
+    if (!appointmentDate || !appointmentTime) {
+      return res.status(400).json({ message: "appointmentDate and appointmentTime are required" });
     }
 
-    const doctor = await Doctor.findById(doctorId);
+const resolvedVisitType = visitType || "Telemedicine";
+const videoLink =
+  resolvedVisitType === "Telemedicine"
+    ? `https://meet.jit.si/appointment-${Date.now()}`
+    : null;
 
-    if (!doctor) {
-      return res.status(404).json({ message: "Doctor not found" });
-    }
-
-    const isConflict = await Appointment.checkConflict(doctorId, appointmentDate, appointmentTime);
-
-    if (isConflict) {
-      return res.status(409).json({ message: "Selected doctor slot is already booked" });
-    }
-
-    const resolvedVisitType = visitType || doctor.visit_type || "Telemedicine";
-    const videoLink = resolvedVisitType === "Telemedicine" ? `https://meet.jit.si/appointment-${Date.now()}` : null;
-
+    
     const row = await Appointment.create({
       patientUserId: req.user.id,
       patientName: req.user.name,
-      doctorId: doctor.id,
-      doctorName: doctor.name,
-      specialty: doctor.specialty,
       appointmentDate,
       appointmentTime,
       visitType: resolvedVisitType,
       hospital: doctor.hospital,
       location: doctor.location,
       notes,
-      videoLink
     });
 
     return res.status(201).json({
