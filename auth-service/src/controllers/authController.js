@@ -1,10 +1,4 @@
-const {
-  registerUser,
-  loginUser,
-  getUserById,
-  updateProfile,
-  changePassword,
-} = require('../services/authService');
+const User = require('../models/User');
 
 const register = async (req, res) => {
   try {
@@ -15,7 +9,7 @@ const register = async (req, res) => {
     if (!['Patient', 'Doctor', 'Admin'].includes(role)) {
       return res.status(400).json({ message: 'Invalid role' });
     }
-    const result = await registerUser({ email, password, role, full_name, phone });
+    const result = await User.registerUser({ email, password, role, full_name, phone });
     res.status(201).json(result);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -28,7 +22,7 @@ const login = async (req, res) => {
     if (!email || !password) {
       return res.status(400).json({ message: 'email and password are required' });
     }
-    const result = await loginUser({ email, password });
+    const result = await User.loginUser({ email, password });
     res.json(result);
   } catch (error) {
     res.status(401).json({ message: error.message });
@@ -37,7 +31,7 @@ const login = async (req, res) => {
 
 const me = async (req, res) => {
   try {
-    const user = await getUserById(req.user.id);
+    const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: 'User not found' });
     res.json({ user });
   } catch (error) {
@@ -48,7 +42,7 @@ const me = async (req, res) => {
 const updateMe = async (req, res) => {
   try {
     const { full_name, phone } = req.body;
-    const user = await updateProfile(req.user.id, { full_name, phone });
+    const user = await User.updateProfile(req.user.id, { full_name, phone });
     if (!user) return res.status(404).json({ message: 'User not found' });
     res.json({ user });
   } catch (error) {
@@ -62,7 +56,7 @@ const changeMyPassword = async (req, res) => {
     if (!currentPassword || !newPassword) {
       return res.status(400).json({ message: 'currentPassword and newPassword are required' });
     }
-    const result = await changePassword(req.user.id, { currentPassword, newPassword });
+    const result = await User.changePassword(req.user.id, { currentPassword, newPassword });
     res.json(result);
   } catch (error) {
     res.status(400).json({ message: error.message });

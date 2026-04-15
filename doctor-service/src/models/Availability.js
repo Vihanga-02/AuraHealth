@@ -1,3 +1,6 @@
+/**
+ * Availability model — availability_slots table.
+ */
 const pool = require('../config/db');
 
 const getSlotsByDoctorId = async (doctorId) => {
@@ -21,7 +24,11 @@ const addSlot = async (doctorId, { day_of_week, start_time, end_time, max_appoin
   return result.rows[0];
 };
 
-const updateSlot = async (slotId, doctorId, { day_of_week, start_time, end_time, max_appointments, is_available }) => {
+const updateSlot = async (
+  slotId,
+  doctorId,
+  { day_of_week, start_time, end_time, max_appointments, is_available }
+) => {
   const result = await pool.query(
     `UPDATE availability_slots SET
        day_of_week       = COALESCE($3, day_of_week),
@@ -30,7 +37,15 @@ const updateSlot = async (slotId, doctorId, { day_of_week, start_time, end_time,
        max_appointments  = COALESCE($6, max_appointments),
        is_available      = COALESCE($7, is_available)
      WHERE slot_id = $1 AND doctor_id = $2 RETURNING *`,
-    [slotId, doctorId, day_of_week||null, start_time||null, end_time||null, max_appointments||null, is_available??null]
+    [
+      slotId,
+      doctorId,
+      day_of_week || null,
+      start_time || null,
+      end_time || null,
+      max_appointments || null,
+      is_available ?? null,
+    ]
   );
   return result.rows[0] || null;
 };
