@@ -2,28 +2,26 @@ const { Appointment, mapAppointment } = require("../models/Appointment");
 
 const createAppointment = async (req, res) => {
   try {
-    const {appointmentDate, appointmentTime, visitType, notes } = req.body;
+    const { doctorId, doctorUserId, appointmentDate, appointmentTime, visitType, notes } = req.body;
 
     if (!appointmentDate || !appointmentTime) {
       return res.status(400).json({ message: "appointmentDate and appointmentTime are required" });
     }
 
-const resolvedVisitType = visitType || "Telemedicine";
-const videoLink =
-  resolvedVisitType === "Telemedicine"
-    ? `https://meet.jit.si/appointment-${Date.now()}`
-    : null;
+    const resolvedVisitType = visitType || "Telemedicine";
+    const videoLink =
+      resolvedVisitType === "Telemedicine" ? `https://meet.jit.si/appointment-${Date.now()}` : null;
 
-    
     const row = await Appointment.create({
+      doctorId,
+      doctorUserId: doctorUserId || null,
       patientUserId: req.user.id,
-      patientName: req.user.name,
+      patientName: req.user.full_name || req.user.name || req.user.email,
       appointmentDate,
       appointmentTime,
       visitType: resolvedVisitType,
-      hospital: doctor.hospital,
-      location: doctor.location,
       notes,
+      videoLink
     });
 
     return res.status(201).json({
@@ -115,10 +113,58 @@ const updateAppointmentStatus = async (req, res) => {
   }
 };
 
+const confirmAppointment = async (req, res) => {
+  try {
+    const row = await Appointment.updateStatus(req.params.id, "CONFIRMED");
+    if (!row) {
+      return res.status(404).json({ message: "Appointment not found" });
+    }
+    return res.json({
+      message: "Appointment confirmed",
+      appointment: mapAppointment(row)
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to confirm appointment", error: error.message });
+  }
+};
+
+// Doctor: fetch their own appointments (matched by doctor_id)
+const getDoctorAppointments = async (req, res) => {
+  try {
+    const status = req.query.status || "";
+    // doctor_id stored as the doctor's auth user_id in the appointments table
+    const rows = await Appointment.findAllByDoctor(req.user.id, status);
+    return res.json(rows.map(mapAppointment));
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to fetch appointments", error: error.message });
+  }
+};
+
+// Doctor: update status of their own appointment (accept/reject/complete)
+const doctorSetStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+    const allowed = ["CONFIRMED", "COMPLETED", "CANCELLED"];
+    if (!allowed.includes(status)) {
+      return res.status(400).json({ message: "Doctor can only set status to CONFIRMED, COMPLETED or CANCELLED" });
+    }
+    const row = await Appointment.updateStatus(req.params.id, status);
+    if (!row) {
+      return res.status(404).json({ message: "Appointment not found" });
+    }
+    return res.json({ message: "Appointment status updated", appointment: mapAppointment(row) });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to update status", error: error.message });
+  }
+};
+
 module.exports = {
   createAppointment,
   getMyAppointments,
   updateAppointment,
   cancelAppointment,
-  updateAppointmentStatus
+  updateAppointmentStatus,
+  confirmAppointment,
+  getDoctorAppointments,
+  doctorSetStatus
 };

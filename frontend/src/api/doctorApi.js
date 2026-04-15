@@ -18,6 +18,12 @@ export const doctorApi = {
   updateSlot:     (id, data)  => api.put(`/doctors/me/availability/${id}`, data),
   deleteSlot:     (id)        => api.delete(`/doctors/me/availability/${id}`),
 
+  // Public: availability for a specific doctor (for patient booking)
+  publicAvailability: (doctorId) => api.get(`/doctors/${doctorId}/availability`),
+
+  // Rate a doctor (Patient only, authenticated)
+  rate: (doctorId, rating) => api.post(`/doctors/${doctorId}/rate`, { rating }),
+
   // Admin
   adminStats:  ()                  => api.get('/doctors/admin/stats'),
   adminAll:    (params)            => api.get('/doctors/admin/all', { params }),

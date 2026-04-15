@@ -29,7 +29,7 @@ const createPatientProfile = async (req, res) => {
 
     const newPatientData = {
       userId: req.user.id,
-      fullName: req.user.name,
+      fullName: req.user.full_name || req.user.name || req.user.email,
       email: req.user.email,
       phone,
       dateOfBirth,
@@ -268,6 +268,46 @@ const getPrescriptionsByPatient = async (req, res) => {
   }
 };
 
+// GET /patients/by-user/:userId  (Doctor / Admin)
+const getPatientByUserId = async (req, res) => {
+  try {
+    const row = await Patient.findByUserId(req.params.userId);
+    if (!row) return res.status(404).json({ message: "Patient profile not found" });
+    return res.json(mapPatient(row));
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to fetch patient", error: error.message });
+  }
+};
+
+// POST /patients/by-user/:userId/prescriptions  (Doctor / Admin)
+const addPrescriptionByUserId = async (req, res) => {
+  try {
+    const { doctorName, diagnosis, medications, notes, issuedDate } = req.body;
+    if (!doctorName) {
+      return res.status(400).json({ message: "doctorName is required" });
+    }
+    const patient = await Patient.findByUserId(req.params.userId);
+    if (!patient) {
+      return res.status(404).json({ message: "Patient profile not found" });
+    }
+    const row = await Prescription.create({
+      patientId:  patient._id || patient.id,
+      doctorId:   req.user.id,
+      doctorName,
+      diagnosis:  diagnosis  || null,
+      medications: medications || [],
+      notes:       notes       || null,
+      issuedDate:  issuedDate  || null,
+    });
+    return res.status(201).json({
+      message: "Prescription added successfully",
+      prescription: mapPrescription(row),
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to add prescription", error: error.message });
+  }
+};
+
 const getPatientHistory = async (req, res) => {
   try {
     const [patientRow, reportsRows, prescriptionsRows] = await Promise.all([
@@ -298,11 +338,13 @@ module.exports = {
   getMyPatientProfile,
   getAllPatients,
   getPatientById,
+  getPatientByUserId,
   updatePatient,
   addReport,
   getReportsByPatient,
   deleteReport,
   addPrescription,
+  addPrescriptionByUserId,
   getPrescriptionsByPatient,
-  getPatientHistory
+  getPatientHistory,
 };

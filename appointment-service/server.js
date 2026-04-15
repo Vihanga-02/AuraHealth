@@ -23,7 +23,7 @@ app.get("/health", (req, res) => {
 
 app.use("/appointments", appointmentRoutes);
 
-const PORT = process.env.PORT || 3006;
+const PORT = process.env.PORT || 5004;
 
 db.initDB().then(() => {
   app.listen(PORT, () => {

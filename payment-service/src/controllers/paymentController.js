@@ -1,12 +1,22 @@
 const PaymentModel = require('../models/paymentModel');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const axios = require('axios');
+
+const getStripe = () => {
+    const key = process.env.STRIPE_SECRET_KEY;
+    if (!key) {
+        const err = new Error('Stripe is not configured: missing STRIPE_SECRET_KEY');
+        err.statusCode = 503;
+        throw err;
+    }
+    return require('stripe')(key);
+};
 
 // 1. Checkout logic
 exports.checkout = async (req, res) => {
     const { amount, appointmentId, currency = 'lkr', customerEmail, customerName } = req.body;
     
     try {
+        const stripe = getStripe();
         const amountInCents = currency === 'usd' ? amount * 100 : amount * 100;
         
         const paymentIntent = await stripe.paymentIntents.create({
@@ -36,7 +46,7 @@ exports.checkout = async (req, res) => {
         });
     } catch (err) {
         console.error("❌ Checkout Error:", err.message);
-        res.status(500).json({ error: err.message });
+        res.status(err.statusCode || 500).json({ error: err.message });
     }
 };
 
@@ -44,6 +54,7 @@ exports.checkout = async (req, res) => {
 exports.confirmPayment = async (req, res) => {
     const { paymentIntentId, customerPhone } = req.body;
     try {
+        const stripe = getStripe();
         const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
         if (paymentIntent.status === 'succeeded') {
             const tx = await PaymentModel.getTransactionByStripeId(paymentIntentId);
@@ -74,7 +85,7 @@ exports.confirmPayment = async (req, res) => {
         }
     } catch (err) {
         console.error("❌ Sync Confirm Error:", err.message);
-        res.status(500).json({ error: err.message });
+        res.status(err.statusCode || 500).json({ error: err.message });
     }
 };
 
@@ -84,10 +95,12 @@ exports.stripeWebhook = async (req, res) => {
     let event;
 
     try {
+        const stripe = getStripe();
         event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
     } catch (err) {
         console.error(`❌ Webhook Signature Error: ${err.message}`);
-        return res.status(400).send(`Webhook Error: ${err.message}`);
+        const code = err.statusCode || 400;
+        return res.status(code).send(`Webhook Error: ${err.message}`);
     }
 
     switch (event.type) {
@@ -123,13 +136,18 @@ async function handlePaymentSuccess(paymentIntent, customerPhone = null) {
         );
         console.log("✅ Payment DB updated to 'succeeded'");
 
-        const appointmentUrl = process.env.APPOINTMENT_SERVICE_URL || 'http://localhost:5001';
+        // Prefer container DNS name in docker; fall back to localhost for local runs.
+        const appointmentUrl = process.env.APPOINTMENT_SERVICE_URL || 'http://appointment-service:5004';
         try {
-            await axios.put(`${appointmentUrl}/api/appointments/${appointmentId}/confirm`, {
+            await axios.put(`${appointmentUrl}/appointments/${appointmentId}/confirm`, {
                 paymentStatus: 'Paid',
                 stripeId: paymentIntent.id,
                 amount: paymentIntent.amount / 100,
                 transactionDate: new Date().toISOString()
+            }, {
+                headers: {
+                    'x-internal-token': process.env.INTERNAL_SERVICE_TOKEN || ''
+                }
             });
             console.log(`🚀 Successfully notified Appointment Service for ID: ${appointmentId}`);
         } catch (error) {
@@ -169,6 +187,7 @@ async function handlePaymentFailure(paymentIntent) {
 async function handleRefund(charge) {
     console.log(`🔄 Refund processed for Charge: ${charge.id}`);
     try {
+        const stripe = getStripe();
         const paymentIntent = await stripe.paymentIntents.retrieve(charge.payment_intent);
         const refundId = charge.refunds.data[0]?.id;
         const refundAmount = charge.amount_refunded / 100;
@@ -218,6 +237,7 @@ exports.processRefund = async (req, res) => {
     const { amount } = req.body;
     
     try {
+        const stripe = getStripe();
         const payment = await PaymentModel.getTransactionByIdOrStripeId(id);
         
         if (!payment) {

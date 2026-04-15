@@ -35,7 +35,7 @@ app.use((err, req, res, next) => {
   next();
 });
 
-const PORT = process.env.PORT || 3005;
+const PORT = process.env.PORT || 5003;
 
 db.initDB().then(() => {
   app.listen(PORT, () => {

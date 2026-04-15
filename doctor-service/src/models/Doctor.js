@@ -167,6 +167,23 @@ const getSpecialties = async () => {
   return result.rows.map((r) => r.specialty);
 };
 
+const rateDoctor = async (doctorId, rating) => {
+  // Compute rolling average: (current_rating * total_consultations + new_rating) / (total_consultations + 1)
+  const result = await pool.query(
+    `UPDATE doctors
+     SET rating = ROUND(
+           (COALESCE(rating, 0) * COALESCE(total_consultations, 0) + $2)::numeric
+           / (COALESCE(total_consultations, 0) + 1), 1
+         ),
+         total_consultations = COALESCE(total_consultations, 0) + 1,
+         updated_at = NOW()
+     WHERE doctor_id = $1
+     RETURNING doctor_id, rating, total_consultations`,
+    [doctorId, rating]
+  );
+  return result.rows[0] || null;
+};
+
 const getDoctorStats = async () => {
   const [total, verified, pending] = await Promise.all([
     pool.query('SELECT COUNT(*) FROM doctors'),
@@ -188,6 +205,7 @@ module.exports = {
   createDoctor,
   updateOwnProfile,
   verifyDoctor,
+  rateDoctor,
   getSpecialties,
   getDoctorStats,
 };
