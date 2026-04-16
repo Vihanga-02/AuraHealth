@@ -73,7 +73,7 @@ export default function PatientAppointments() {
 
   const renderCard = (a) => {
     const isPaid  = ['CONFIRMED', 'CHECKED_IN', 'IN_CONSULTATION', 'COMPLETED'].includes(a.status);
-    const canJoin = isPaid && a.visitType === 'Telemedicine';
+    const canJoin = ['CONFIRMED', 'CHECKED_IN', 'IN_CONSULTATION'].includes(a.status) && a.visitType === 'Telemedicine';
     const canCancel   = ['PENDING', 'CONFIRMED'].includes(a.status);
     const canPay      = a.status === 'PENDING';
     const isCancelled = a.status === 'CANCELLED';
@@ -138,8 +138,8 @@ export default function PatientAppointments() {
               </button>
             )}
 
-            {/* Telemedicine but not yet paid — locked join */}
-            {!isPaid && a.visitType === 'Telemedicine' && !isCancelled && (
+            {/* Telemedicine but not yet paid — locked join (only for PENDING, not completed) */}
+            {!isPaid && a.visitType === 'Telemedicine' && !isCancelled && a.status !== 'COMPLETED' && (
               <span
                 title="Complete payment first to unlock the video call"
                 className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-4 py-2 text-xs font-bold text-slate-400 cursor-not-allowed"

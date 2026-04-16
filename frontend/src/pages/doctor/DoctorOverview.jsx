@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { doctorApi, appointmentApi } from '../../api';
 
@@ -30,6 +30,7 @@ const StatCard = ({ icon, label, value, tone = 'blue' }) => {
 
 const DoctorOverview = () => {
   const { user }   = useAuth();
+  const navigate   = useNavigate();
   const [profile,  setProfile]  = useState(null);
   const [appts,    setAppts]    = useState([]);
   const [loading,  setLoading]  = useState(true);
@@ -160,11 +161,14 @@ const DoctorOverview = () => {
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[a.status] || 'bg-slate-100 text-slate-600'}`}>
                       {a.status}
                     </span>
-                    {a.videoLink && a.status === 'CONFIRMED' && (
-                      <a href={a.videoLink} target="_blank" rel="noopener noreferrer"
-                         className="text-xs font-semibold text-purple-600 hover:underline">
-                        Join
-                      </a>
+                    {['CONFIRMED', 'CHECKED_IN', 'IN_CONSULTATION'].includes(a.status) && a.visitType === 'Telemedicine' && (
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/doctor/telemedicine/join/${a._id}`)}
+                        className="text-xs font-semibold text-purple-600 hover:text-purple-800 transition-colors"
+                      >
+                        📹 Join
+                      </button>
                     )}
                   </div>
                 </div>
