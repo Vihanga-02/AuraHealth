@@ -3,11 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { doctorApi } from '../api/doctorApi';
 
-const SPECIALTIES = [
-  'All Specialties', 'Cardiologist', 'Dermatologist', 'General Physician',
-  'Neurologist', 'Orthopedic', 'Pediatrician', 'Psychiatrist', 'Radiologist',
-];
-
 function StarRating({ doctorId, currentRating, onRated }) {
   const [hover,      setHover]      = useState(0);
   const [submitting, setSubmitting] = useState(false);
@@ -68,11 +63,22 @@ const DoctorsList = () => {
   const { user }       = useAuth();
   const isPatient      = user?.role === 'Patient';
 
-  const [doctors,    setDoctors]   = useState([]);
-  const [loading,    setLoading]   = useState(true);
-  const [search,     setSearch]    = useState('');
-  const [specialty,  setSpecialty] = useState('');
-  const [error,      setError]     = useState('');
+  const [doctors,      setDoctors]    = useState([]);
+  const [loading,      setLoading]    = useState(true);
+  const [search,       setSearch]     = useState('');
+  const [specialty,    setSpecialty]  = useState('');
+  const [error,        setError]      = useState('');
+  const [specialties,  setSpecialties] = useState([]);
+
+  // Load distinct specialties that exist in the database
+  useEffect(() => {
+    doctorApi.specialties()
+      .then(({ data }) => {
+        const list = Array.isArray(data) ? data : (data?.specialties ?? []);
+        setSpecialties(list.filter(Boolean).sort());
+      })
+      .catch(() => { /* silently ignore — filter still works without list */ });
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -134,10 +140,11 @@ const DoctorsList = () => {
           />
           <select
             value={specialty}
-            onChange={(e) => setSpecialty(e.target.value === 'All Specialties' ? '' : e.target.value)}
+            onChange={(e) => setSpecialty(e.target.value)}
             className="rounded-lg px-4 py-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-300 shadow bg-white"
           >
-            {SPECIALTIES.map((s) => <option key={s}>{s}</option>)}
+            <option value="">All Specialties</option>
+            {specialties.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
         </div>
       </div>
