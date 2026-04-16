@@ -51,13 +51,15 @@ function CheckoutForm({ appointmentId, appointment, doctor }) {
     }
   }, [appointmentId, appointment]);
 
-  // Sync amount when doctor profile loads after initial render
+  // Create the payment intent exactly once, after doctor resolves (undefined → value)
+  // This ensures the Stripe intent is always created with the correct fee
   useEffect(() => {
+    if (doctor === undefined) return; // still loading — wait
     const fee = Number(doctor?.consultation_fee || doctor?.consultationFee || 0);
-    if (fee > 0) setAmount(fee);
-  }, [doctor]);
-
-  useEffect(() => { createIntent(amount); }, []); // eslint-disable-line
+    const finalAmount = fee > 0 ? fee : 2500;
+    setAmount(finalAmount);
+    createIntent(finalAmount);
+  }, [doctor]); // eslint-disable-line
 
   const handlePay = async (e) => {
     e.preventDefault();
@@ -173,7 +175,7 @@ function CheckoutForm({ appointmentId, appointment, doctor }) {
 export default function PatientCheckout() {
   const { appointmentId } = useParams();
   const [appointment,  setAppointment]  = useState(null);
-  const [doctor,       setDoctor]       = useState(null);
+  const [doctor,       setDoctor]       = useState(undefined); // undefined = loading, null = not found
   const [loadingAppt,  setLoadingAppt]  = useState(true);
 
   const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '';
@@ -189,9 +191,12 @@ export default function PatientCheckout() {
         if (found?.doctorId) {
           try {
             const { data: doc } = await doctorApi.getOne(found.doctorId);
-            // getOneDoctor returns { doctor: {...} }
-            setDoctor(doc.doctor || doc);
-          } catch { /* fee will stay undefined — user can edit the field */ }
+            setDoctor(doc.doctor || doc);  // getOneDoctor wraps in { doctor: {...} }
+          } catch {
+            setDoctor(null); // fetch failed — signal resolved with no data
+          }
+        } else {
+          setDoctor(null); // no doctorId on appointment
         }
       })
       .catch(() => {})
