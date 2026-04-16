@@ -18,7 +18,7 @@ export default function PatientProfile() {
   const [patient,    setPatient]    = useState(null);
   const [toast,      setToast]      = useState({ type: '', msg: '' });
   const [showPw,     setShowPw]     = useState(false);
-  const [form, setForm] = useState({ phone: '', address: '', gender: '', bloodGroup: '', date_of_birth: '', emergency_contact: '' });
+  const [form, setForm] = useState({ phone: '', address: '', gender: '', bloodGroup: '', dateOfBirth: '', emergencyContact: '' });
   const [pwForm, setPwForm] = useState({ current_password: '', new_password: '', confirm: '' });
 
   const flash = (type, msg) => { setToast({ type, msg }); setTimeout(() => setToast({ type: '', msg: '' }), 4000); };
@@ -26,7 +26,9 @@ export default function PatientProfile() {
   useEffect(() => {
     patientApi.me().then(({ data }) => {
       setPatient(data);
-      setForm({ phone: data.phone || '', address: data.address || '', gender: data.gender || '', bloodGroup: data.bloodGroup || '', date_of_birth: data.date_of_birth || '', emergency_contact: data.emergency_contact || '' });
+      // Combine emergencyContactName + emergencyContactPhone into one display string
+      const ec = [data.emergencyContactName, data.emergencyContactPhone].filter(Boolean).join(' — ');
+      setForm({ phone: data.phone || '', address: data.address || '', gender: data.gender || '', bloodGroup: data.bloodGroup || '', dateOfBirth: data.dateOfBirth || '', emergencyContact: ec });
     }).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
@@ -35,7 +37,16 @@ export default function PatientProfile() {
   const handleSave = async (e) => {
     e.preventDefault(); setSaving(true);
     try {
-      const fn = patient ? patientApi.update(patient._id || patient.id, form) : patientApi.createProfile(form);
+      // Map form keys to the backend's expected field names
+      const payload = {
+        phone:                 form.phone,
+        address:               form.address,
+        gender:                form.gender,
+        bloodGroup:            form.bloodGroup,
+        dateOfBirth:           form.dateOfBirth,
+        emergencyContactName:  form.emergencyContact,
+      };
+      const fn = patient ? patientApi.update(patient._id || patient.id, payload) : patientApi.createProfile(payload);
       const { data } = await fn;
       setPatient(data.patient || data);
       flash('success', patient ? 'Profile updated successfully!' : 'Profile created successfully!');
@@ -99,8 +110,8 @@ export default function PatientProfile() {
                 {[
                   ['🩸 Blood Group',    form.bloodGroup        || '—'],
                   ['⚧  Gender',         form.gender            || '—'],
-                  ['📅 Date of Birth',  form.date_of_birth     || '—'],
-                  ['📞 Emergency',      form.emergency_contact || '—'],
+                  ['📅 Date of Birth',  form.dateOfBirth       || '—'],
+                  ['📞 Emergency',      form.emergencyContact  || '—'],
                   ['📍 Address',        form.address           || '—'],
                 ].map(([l, v]) => (
                   <div key={l} className="px-5 py-3 flex justify-between items-start gap-2 text-sm">
@@ -138,11 +149,11 @@ export default function PatientProfile() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1.5">Date of Birth</label>
-                <input type="date" className={inputCls()} value={form.date_of_birth} onChange={set('date_of_birth')} />
+                <input type="date" className={inputCls()} value={form.dateOfBirth} onChange={set('dateOfBirth')} />
               </div>
               <div className="sm:col-span-2">
                 <label className="block text-sm font-medium text-slate-700 mb-1.5">Emergency Contact</label>
-                <input className={inputCls()} value={form.emergency_contact} onChange={set('emergency_contact')} placeholder="Name — +94 7X XXX XXXX" />
+                <input className={inputCls()} value={form.emergencyContact} onChange={set('emergencyContact')} placeholder="Name — +94 7X XXX XXXX" />
               </div>
               <div className="sm:col-span-2">
                 <label className="block text-sm font-medium text-slate-700 mb-1.5">Home Address</label>
