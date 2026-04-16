@@ -18,12 +18,16 @@ const Navbar = () => {
   return (
     <nav className="sticky top-0 z-50 bg-white border-b border-slate-200 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
+        <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
-            <Link to="/" className="flex items-center gap-2">
-              <span className="text-2xl font-bold text-blue-600">AuraHealth</span>
+            <Link to="/" className="flex items-center gap-4">
+              <img
+                src="/logo.png"
+                alt="AuraHealth Logo"
+                className="h-10 w-auto object-contain"
+              />
             </Link>
-            
+
             <div className="hidden md:flex ml-10 space-x-8">
               <Link to="/" className="text-slate-600 hover:text-blue-600 font-medium">Home</Link>
               <Link to="/doctors" className="text-slate-600 hover:text-blue-600 font-medium">Find a Doctor</Link>
@@ -40,7 +44,7 @@ const Navbar = () => {
                   <span className="font-semibold text-slate-800">{user.full_name || user.email}</span>
                   <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 rounded-md text-xs font-bold">{user.role}</span>
                 </div>
-                
+
                 {user.role === 'Admin' && (
                   <Link to="/admin/dashboard" className={btnSecondarySm}>Dashboard</Link>
                 )}
@@ -50,7 +54,7 @@ const Navbar = () => {
                 {user.role === 'Patient' && (
                   <Link to="/patient/dashboard" className={btnSecondarySm}>Dashboard</Link>
                 )}
-                
+
                 <button onClick={handleLogout} className={btnGhostSm}>Logout</button>
               </>
             ) : (
