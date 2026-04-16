@@ -23,18 +23,6 @@ AuraHealth connects patients with verified doctors through a modern web interfac
 
 ---
 
-## 🖥️ Screenshots
-
-| Public — Find a Doctor | Patient Dashboard | Doctor Dashboard |
-|---|---|---|
-| Dynamic specialty filter, star ratings | Overview stats, appointments, prescriptions | Appointments, patients, availability |
-
-| Telemedicine Room | Admin Panel | Payments |
-|---|---|---|
-| Agora-powered real-time video | User & doctor verification management | Stripe sandbox checkout |
-
----
-
 ## 🏗️ Architecture
 
 ```
