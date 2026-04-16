@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { patientApi, appointmentApi } from '../../api';
 
@@ -32,7 +32,8 @@ const StatCard = ({ icon, label, value, tone = 'blue' }) => {
 };
 
 export default function PatientDashboard() {
-  const { user } = useAuth();
+  const { user }   = useAuth();
+  const navigate   = useNavigate();
   const [profile, setProfile]           = useState(null);
   const [appointments, setAppointments] = useState([]);
   const [reports, setReports]           = useState([]);
@@ -195,15 +196,14 @@ export default function PatientDashboard() {
                     <span className={`text-xs px-2 py-1 rounded-full font-medium ${STATUS_COLORS[a.status] || 'bg-slate-100 text-slate-600'}`}>
                       {a.status}
                     </span>
-                    {a.videoLink && a.status === 'CONFIRMED' && (
-                      <a
-                        href={a.videoLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs font-semibold text-purple-600 hover:underline"
+                    {['CONFIRMED', 'CHECKED_IN', 'IN_CONSULTATION'].includes(a.status) && a.visitType === 'Telemedicine' && (
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/patient/telemedicine/join/${a._id}`)}
+                        className="text-xs font-semibold text-purple-600 hover:text-purple-800 transition-colors"
                       >
-                        Join Call
-                      </a>
+                        📹 Join Call
+                      </button>
                     )}
                   </div>
                 </div>
@@ -264,15 +264,14 @@ export default function PatientDashboard() {
                   : '—'}{' '}
                 at {nextAppt.appointmentTime?.slice(0, 5)}
               </div>
-              {nextAppt.videoLink && nextAppt.status === 'CONFIRMED' && (
-                <a
-                  href={nextAppt.videoLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
+              {['CONFIRMED', 'CHECKED_IN', 'IN_CONSULTATION'].includes(nextAppt.status) && nextAppt.visitType === 'Telemedicine' && (
+                <button
+                  type="button"
+                  onClick={() => navigate(`/patient/telemedicine/join/${nextAppt._id}`)}
                   className="mt-3 block w-full text-center rounded-lg bg-purple-600 py-2 text-sm font-semibold text-white hover:bg-purple-700"
                 >
-                  Join Video Call
-                </a>
+                  📹 Join Video Call
+                </button>
               )}
             </div>
           )}
