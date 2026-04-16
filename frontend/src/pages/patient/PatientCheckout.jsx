@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useElements, useStripe } from '@stripe/react-stripe-js';
-import { paymentApi, appointmentApi, patientApi } from '../../api';
+import { paymentApi, appointmentApi } from '../../api';
+import { doctorApi } from '../../api/doctorApi';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
@@ -15,12 +16,12 @@ const CARD_STYLE = {
 };
 
 /* ─── Inner form (needs Stripe context) ─────────────────────────────────── */
-function CheckoutForm({ appointmentId, appointment }) {
+function CheckoutForm({ appointmentId, appointment, doctor }) {
   const stripe   = useStripe();
   const elements = useElements();
   const navigate = useNavigate();
 
-  const defaultFee = appointment?.consultationFee || appointment?.consultation_fee || 2500;
+  const defaultFee = Number(doctor?.consultation_fee || doctor?.consultationFee || 0) || 2500;
 
   const [amount,       setAmount]       = useState(defaultFee);
   const [phone,        setPhone]        = useState('');
@@ -50,7 +51,15 @@ function CheckoutForm({ appointmentId, appointment }) {
     }
   }, [appointmentId, appointment]);
 
-  useEffect(() => { createIntent(amount); }, []); // eslint-disable-line
+  // Create the payment intent exactly once, after doctor resolves (undefined → value)
+  // This ensures the Stripe intent is always created with the correct fee
+  useEffect(() => {
+    if (doctor === undefined) return; // still loading — wait
+    const fee = Number(doctor?.consultation_fee || doctor?.consultationFee || 0);
+    const finalAmount = fee > 0 ? fee : 2500;
+    setAmount(finalAmount);
+    createIntent(finalAmount);
+  }, [doctor]); // eslint-disable-line
 
   const handlePay = async (e) => {
     e.preventDefault();
@@ -166,17 +175,29 @@ function CheckoutForm({ appointmentId, appointment }) {
 export default function PatientCheckout() {
   const { appointmentId } = useParams();
   const [appointment,  setAppointment]  = useState(null);
+  const [doctor,       setDoctor]       = useState(undefined); // undefined = loading, null = not found
   const [loadingAppt,  setLoadingAppt]  = useState(true);
 
   const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '';
 
   useEffect(() => {
-    // Try to fetch appointment details for display
     appointmentApi.my()
-      .then(({ data }) => {
-        const list = Array.isArray(data) ? data : [];
+      .then(async ({ data }) => {
+        const list  = Array.isArray(data) ? data : [];
         const found = list.find((a) => String(a._id) === String(appointmentId) || String(a.id) === String(appointmentId));
         setAppointment(found || null);
+
+        // Fetch doctor to get the real consultation fee
+        if (found?.doctorId) {
+          try {
+            const { data: doc } = await doctorApi.getOne(found.doctorId);
+            setDoctor(doc.doctor || doc);  // getOneDoctor wraps in { doctor: {...} }
+          } catch {
+            setDoctor(null); // fetch failed — signal resolved with no data
+          }
+        } else {
+          setDoctor(null); // no doctorId on appointment
+        }
       })
       .catch(() => {})
       .finally(() => setLoadingAppt(false));
@@ -217,7 +238,7 @@ export default function PatientCheckout() {
           </div>
           <div className="px-6 py-6">
             <Elements stripe={stripePromise} options={options}>
-              <CheckoutForm appointmentId={appointmentId} appointment={appointment} />
+              <CheckoutForm appointmentId={appointmentId} appointment={appointment} doctor={doctor} />
             </Elements>
           </div>
         </div>
@@ -245,9 +266,17 @@ export default function PatientCheckout() {
                       <span className="font-medium text-slate-800">{v}</span>
                     </div>
                   ))}
+                  {doctor && (
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Doctor</span>
+                      <span className="font-medium text-slate-800">{doctor.full_name || '—'}</span>
+                    </div>
+                  )}
                   <div className="border-t border-slate-100 pt-3 flex justify-between font-bold text-base">
                     <span className="text-slate-700">Total</span>
-                    <span className="text-blue-600">LKR {Number(appointment.consultationFee || appointment.consultation_fee || 2500).toLocaleString()}</span>
+                    <span className="text-blue-600">
+                      LKR {Number(doctor?.consultation_fee || doctor?.consultationFee || 2500).toLocaleString()}
+                    </span>
                   </div>
                 </>
               ) : (
