@@ -64,7 +64,6 @@ export default function DoctorTelemedicineManage() {
   };
 
   const handleCopyLink = (id) => {
-    // Patient join link points to the shared Jitsi room page
     const patientLink = `${window.location.origin}/patient/telemedicine/join/${id}`;
     navigator.clipboard.writeText(patientLink)
       .then(() => flash('Patient join link copied to clipboard!'))
@@ -72,7 +71,6 @@ export default function DoctorTelemedicineManage() {
   };
 
   const handleJoin = (id) => {
-    // Navigate to the in-app Jitsi room (doctor route)
     navigate(`/doctor/telemedicine/join/${id}`);
   };
 
