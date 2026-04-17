@@ -21,13 +21,28 @@ spec:
           env:
             - name: PORT
               value: "5005"
+            - name: NODE_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: aura-config
+                  key: NODE_ENV
             - name: DATABASE_URL
               value: postgresql://aura_user:aura_pass@payment-db:5432/payment_db
-            - name: JWT_SECRET
+            - name: STRIPE_SECRET_KEY
               valueFrom:
                 secretKeyRef:
                   name: aura-secrets
-                  key: JWT_SECRET
+                  key: STRIPE_SECRET_KEY
+            - name: STRIPE_WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: aura-secrets
+                  key: STRIPE_WEBHOOK_SECRET
+            - name: INTERNAL_SERVICE_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: aura-secrets
+                  key: INTERNAL_SERVICE_TOKEN
             - name: APPOINTMENT_SERVICE_URL
               valueFrom:
                 configMapKeyRef:

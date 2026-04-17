@@ -48,10 +48,15 @@ spec:
           volumeMounts:
             - name: patient-db-storage
               mountPath: /var/lib/postgresql/data
+            - name: patient-db-init
+              mountPath: /docker-entrypoint-initdb.d
       volumes:
         - name: patient-db-storage
           persistentVolumeClaim:
             claimName: patient-db-pvc
+        - name: patient-db-init
+          configMap:
+            name: patient-db-init
 ---
 apiVersion: v1
 kind: Service

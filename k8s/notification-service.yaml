@@ -21,6 +21,11 @@ spec:
           env:
             - name: PORT
               value: "5006"
+            - name: NODE_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: aura-config
+                  key: NODE_ENV
             - name: DATABASE_URL
               value: postgresql://aura_user:aura_pass@notification-db:5432/notification_db
             - name: JWT_SECRET
@@ -28,6 +33,16 @@ spec:
                 secretKeyRef:
                   name: aura-secrets
                   key: JWT_SECRET
+            - name: SMS_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: aura-secrets
+                  key: SMS_API_KEY
+            - name: NOTIFY_SENDER_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: aura-config
+                  key: NOTIFY_SENDER_ID
 ---
 apiVersion: v1
 kind: Service

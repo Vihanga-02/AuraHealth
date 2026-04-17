@@ -1,0 +1,233 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: auth-db-init
+data:
+  init.sql: |
+    -- AuraHealth Auth Service Database Schema
+    CREATE TABLE IF NOT EXISTS users (
+        user_id     SERIAL PRIMARY KEY,
+        email       VARCHAR(255) UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        role        VARCHAR(50) CHECK (role IN ('Patient', 'Doctor', 'Admin')) NOT NULL,
+        full_name   VARCHAR(255),
+        phone       VARCHAR(20),
+        is_active   BOOLEAN DEFAULT TRUE,
+        created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS admin_logs (
+        log_id        SERIAL PRIMARY KEY,
+        admin_id      INT REFERENCES users(user_id),
+        action        VARCHAR(255) NOT NULL,
+        target_user_id INT REFERENCES users(user_id),
+        details       TEXT,
+        created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- Seed Data (password = "123456" for all)
+    INSERT INTO users (email, password_hash, role, full_name, is_active)
+    VALUES
+      ('admin@aurahealth.lk',  '123456', 'Admin',   'Super Admin',        TRUE),
+      ('doctor@aurahealth.lk', '123456', 'Doctor',  'Dr. Nimal Perera',   TRUE),
+      ('patient@aurahealth.lk','123456', 'Patient', 'Kasun Silva',        TRUE)
+    ON CONFLICT (email) DO NOTHING;
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: doctor-db-init
+data:
+  init.sql: |
+    -- AuraHealth Doctor Service Database Schema
+    CREATE TABLE IF NOT EXISTS doctors (
+        doctor_id           SERIAL PRIMARY KEY,
+        user_id             INT UNIQUE NOT NULL,
+        full_name           VARCHAR(255) NOT NULL,
+        specialty           VARCHAR(100) NOT NULL,
+        bio                 TEXT,
+        license_number      VARCHAR(100),
+        qualification       TEXT,
+        experience_years    INT DEFAULT 0,
+        consultation_fee    DECIMAL(10,2) DEFAULT 0.00,
+        phone_number        VARCHAR(20),
+        profile_image_url   TEXT,
+        languages           TEXT DEFAULT 'English',
+        hospital_affiliation TEXT,
+        verified            BOOLEAN DEFAULT FALSE,
+        rating              DECIMAL(3,2) DEFAULT 0.00,
+        total_consultations INT DEFAULT 0,
+        created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS availability_slots (
+        slot_id         SERIAL PRIMARY KEY,
+        doctor_id       INT NOT NULL REFERENCES doctors(doctor_id) ON DELETE CASCADE,
+        day_of_week     VARCHAR(15) NOT NULL CHECK (day_of_week IN ('Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday')),
+        start_time      TIME NOT NULL,
+        end_time        TIME NOT NULL,
+        max_appointments INT DEFAULT 10,
+        is_available    BOOLEAN DEFAULT TRUE,
+        created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- Seed Data
+    INSERT INTO doctors (user_id, full_name, specialty, bio, license_number, qualification, experience_years, consultation_fee, phone_number, languages, hospital_affiliation, verified, rating, total_consultations)
+    VALUES
+      (2, 'Dr. Nimal Perera', 'Cardiology', 'Experienced cardiologist with 15 years expertise in cardiovascular medicine and heart disease management.', 'SLMC-2010-001', 'MBBS, MD (Cardiology), FRCP', 15, 2500.00, '0771234567', 'English, Sinhala', 'National Hospital Colombo', TRUE, 4.8, 1245)
+    ON CONFLICT (user_id) DO NOTHING;
+
+    INSERT INTO availability_slots (doctor_id, day_of_week, start_time, end_time, max_appointments)
+    VALUES
+      (1, 'Monday',    '09:00', '13:00', 8),
+      (1, 'Wednesday', '09:00', '13:00', 8),
+      (1, 'Friday',    '14:00', '18:00', 8)
+    ON CONFLICT DO NOTHING;
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: patient-db-init
+data:
+  init.sql: |
+    -- Patient Service Database Schema
+    CREATE TABLE IF NOT EXISTS patients (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL UNIQUE,
+      full_name VARCHAR(150) NOT NULL,
+      email VARCHAR(150) NOT NULL,
+      phone VARCHAR(30) NOT NULL,
+      date_of_birth DATE,
+      gender VARCHAR(20),
+      address TEXT,
+      blood_group VARCHAR(10),
+      allergies TEXT,
+      chronic_conditions TEXT,
+      emergency_contact_name VARCHAR(150),
+      emergency_contact_phone VARCHAR(30),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS reports (
+      id SERIAL PRIMARY KEY,
+      patient_id INTEGER NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
+      uploaded_by INTEGER NOT NULL,
+      report_title VARCHAR(200) NOT NULL,
+      report_type VARCHAR(100) DEFAULT 'General',
+      file_name VARCHAR(255) NOT NULL,
+      file_path TEXT NOT NULL,
+      file_url TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS prescriptions (
+      id SERIAL PRIMARY KEY,
+      patient_id INTEGER NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
+      doctor_id INTEGER,
+      doctor_name VARCHAR(150) NOT NULL,
+      diagnosis TEXT,
+      medications TEXT,
+      notes TEXT,
+      issued_date DATE DEFAULT CURRENT_DATE,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: appointment-db-init
+data:
+  init.sql: |
+    -- Appointment Service Database Schema
+    CREATE TABLE IF NOT EXISTS appointments (
+      id SERIAL PRIMARY KEY,
+      doctor_id INTEGER,
+      doctor_user_id INTEGER,
+      patient_user_id INTEGER NOT NULL,
+      patient_name VARCHAR(150) NOT NULL,
+      appointment_date DATE NOT NULL,
+      appointment_time VARCHAR(50) NOT NULL,
+      visit_type VARCHAR(50) DEFAULT 'Telemedicine',
+      status VARCHAR(30) NOT NULL DEFAULT 'PENDING'
+        CHECK (status IN ('PENDING', 'CONFIRMED', 'CHECKED_IN', 'IN_CONSULTATION', 'COMPLETED', 'CANCELLED')),
+      notes TEXT,
+      video_link TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: payment-db-init
+data:
+  init.sql: |
+    -- Payment Service Database Schema
+    CREATE TABLE IF NOT EXISTS transactions (
+        id SERIAL PRIMARY KEY,
+        appointment_id INTEGER NOT NULL,
+        stripe_payment_id VARCHAR(255) UNIQUE NOT NULL,
+        amount DECIMAL(10, 2) NOT NULL,
+        currency VARCHAR(3) DEFAULT 'LKR',
+        status VARCHAR(50) DEFAULT 'pending',
+        customer_email VARCHAR(255),
+        customer_name VARCHAR(255),
+        payment_method VARCHAR(100),
+        error_message TEXT,
+        refund_id VARCHAR(255),
+        refund_amount DECIMAL(10, 2),
+        refund_date TIMESTAMP,
+        payment_intent_data JSONB,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_transactions_appointment_id ON transactions(appointment_id);
+    CREATE INDEX IF NOT EXISTS idx_transactions_stripe_payment_id ON transactions(stripe_payment_id);
+    CREATE INDEX IF NOT EXISTS idx_transactions_status ON transactions(status);
+    CREATE INDEX IF NOT EXISTS idx_transactions_created_at ON transactions(created_at);
+    CREATE INDEX IF NOT EXISTS idx_transactions_customer_email ON transactions(customer_email);
+
+    CREATE OR REPLACE FUNCTION update_updated_at_column()
+    RETURNS TRIGGER AS $$
+    BEGIN
+        NEW.updated_at = CURRENT_TIMESTAMP;
+        RETURN NEW;
+    END;
+    $$ language 'plpgsql';
+
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_trigger WHERE tgname = 'update_transactions_updated_at'
+      ) THEN
+        CREATE TRIGGER update_transactions_updated_at
+          BEFORE UPDATE ON transactions
+          FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+      END IF;
+    END;
+    $$;
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: notification-db-init
+data:
+  init.sql: |
+    -- Notification Service Database Schema
+    CREATE TABLE IF NOT EXISTS notifications (
+        id SERIAL PRIMARY KEY,
+        recipient_number VARCHAR(20) NOT NULL,
+        message_body TEXT NOT NULL,
+        status VARCHAR(20) DEFAULT 'PENDING',
+        provider_ref VARCHAR(100),
+        error_message TEXT,
+        sent_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_notifications_recipient ON notifications(recipient_number);
+    CREATE INDEX IF NOT EXISTS idx_notifications_status ON notifications(status);

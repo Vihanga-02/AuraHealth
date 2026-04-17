@@ -3,6 +3,7 @@ kind: ConfigMap
 metadata:
   name: aura-config
 data:
+  # Database names
   AUTH_DB_NAME: auth_db
   DOCTOR_DB_NAME: doctor_db
   PATIENT_DB_NAME: patient_db
@@ -11,6 +12,7 @@ data:
   NOTIFICATION_DB_NAME: notification_db
   TELEMEDICINE_DB_NAME: telemedicine_db
 
+  # Internal service URLs
   AUTH_SERVICE_URL: http://auth-service:5001
   DOCTOR_SERVICE_URL: http://doctor-service:5002
   PATIENT_SERVICE_URL: http://patient-service:5003
@@ -18,3 +20,13 @@ data:
   PAYMENT_SERVICE_URL: http://payment-service:5005
   NOTIFICATION_SERVICE_URL: http://notification-service:5006
   TELEMEDICINE_SERVICE_URL: http://telemedicine-service:5007
+
+  # Notification settings
+  NOTIFY_SENDER_ID: TextLKDemo
+
+  # Telemedicine settings
+  SCHEDULE_TIMEZONE_OFFSET: "+05:30"
+  FRONTEND_BASE_URL: http://frontend:80
+
+  # General
+  NODE_ENV: production
