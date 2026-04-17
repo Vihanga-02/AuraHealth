@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: notification-service
+  template:
+    metadata:
+      labels:
+        app: notification-service
+    spec:
+      containers:
+        - name: notification-service
+          image: aurahealth-notification-service:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 5006
+          env:
+            - name: PORT
+              value: "5006"
+            - name: DATABASE_URL
+              value: postgresql://aura_user:aura_pass@notification-db:5432/notification_db
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: aura-secrets
+                  key: JWT_SECRET
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: notification-service
+spec:
+  selector:
+    app: notification-service
+  ports:
+    - port: 5006
+      targetPort: 5006
+  type: ClusterIP

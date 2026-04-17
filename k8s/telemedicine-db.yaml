@@ -1,0 +1,66 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: telemedicine-db-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: telemedicine-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: telemedicine-db
+  template:
+    metadata:
+      labels:
+        app: telemedicine-db
+    spec:
+      containers:
+        - name: telemedicine-db
+          image: postgres:16-alpine
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: aura-config
+                  key: TELEMEDICINE_DB_NAME
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: aura-secrets
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: aura-secrets
+                  key: POSTGRES_PASSWORD
+          volumeMounts:
+            - name: telemedicine-db-storage
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: telemedicine-db-storage
+          persistentVolumeClaim:
+            claimName: telemedicine-db-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: telemedicine-db
+spec:
+  selector:
+    app: telemedicine-db
+  ports:
+    - port: 5432
+      targetPort: 5432
+  type: ClusterIP

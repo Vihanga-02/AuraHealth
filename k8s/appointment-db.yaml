@@ -1,0 +1,66 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: appointment-db-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: appointment-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: appointment-db
+  template:
+    metadata:
+      labels:
+        app: appointment-db
+    spec:
+      containers:
+        - name: appointment-db
+          image: postgres:16-alpine
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: aura-config
+                  key: APPOINTMENT_DB_NAME
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: aura-secrets
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: aura-secrets
+                  key: POSTGRES_PASSWORD
+          volumeMounts:
+            - name: appointment-db-storage
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: appointment-db-storage
+          persistentVolumeClaim:
+            claimName: appointment-db-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: appointment-db
+spec:
+  selector:
+    app: appointment-db
+  ports:
+    - port: 5432
+      targetPort: 5432
+  type: ClusterIP
