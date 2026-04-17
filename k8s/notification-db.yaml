@@ -48,10 +48,15 @@ spec:
           volumeMounts:
             - name: notification-db-storage
               mountPath: /var/lib/postgresql/data
+            - name: notification-db-init
+              mountPath: /docker-entrypoint-initdb.d
       volumes:
         - name: notification-db-storage
           persistentVolumeClaim:
             claimName: notification-db-pvc
+        - name: notification-db-init
+          configMap:
+            name: notification-db-init
 ---
 apiVersion: v1
 kind: Service

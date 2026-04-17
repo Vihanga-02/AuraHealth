@@ -48,10 +48,15 @@ spec:
           volumeMounts:
             - name: appointment-db-storage
               mountPath: /var/lib/postgresql/data
+            - name: appointment-db-init
+              mountPath: /docker-entrypoint-initdb.d
       volumes:
         - name: appointment-db-storage
           persistentVolumeClaim:
             claimName: appointment-db-pvc
+        - name: appointment-db-init
+          configMap:
+            name: appointment-db-init
 ---
 apiVersion: v1
 kind: Service

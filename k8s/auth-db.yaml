@@ -48,10 +48,15 @@ spec:
           volumeMounts:
             - name: auth-db-storage
               mountPath: /var/lib/postgresql/data
+            - name: auth-db-init
+              mountPath: /docker-entrypoint-initdb.d
       volumes:
         - name: auth-db-storage
           persistentVolumeClaim:
             claimName: auth-db-pvc
+        - name: auth-db-init
+          configMap:
+            name: auth-db-init
 ---
 apiVersion: v1
 kind: Service

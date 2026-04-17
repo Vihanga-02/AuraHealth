@@ -48,10 +48,15 @@ spec:
           volumeMounts:
             - name: doctor-db-storage
               mountPath: /var/lib/postgresql/data
+            - name: doctor-db-init
+              mountPath: /docker-entrypoint-initdb.d
       volumes:
         - name: doctor-db-storage
           persistentVolumeClaim:
             claimName: doctor-db-pvc
+        - name: doctor-db-init
+          configMap:
+            name: doctor-db-init
 ---
 apiVersion: v1
 kind: Service
