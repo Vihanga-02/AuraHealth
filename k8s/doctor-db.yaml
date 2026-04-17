@@ -1,0 +1,66 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: doctor-db-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: doctor-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: doctor-db
+  template:
+    metadata:
+      labels:
+        app: doctor-db
+    spec:
+      containers:
+        - name: doctor-db
+          image: postgres:16-alpine
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: aura-config
+                  key: DOCTOR_DB_NAME
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: aura-secrets
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: aura-secrets
+                  key: POSTGRES_PASSWORD
+          volumeMounts:
+            - name: doctor-db-storage
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: doctor-db-storage
+          persistentVolumeClaim:
+            claimName: doctor-db-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: doctor-db
+spec:
+  selector:
+    app: doctor-db
+  ports:
+    - port: 5432
+      targetPort: 5432
+  type: ClusterIP

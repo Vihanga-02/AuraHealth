@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: telemedicine-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: telemedicine-service
+  template:
+    metadata:
+      labels:
+        app: telemedicine-service
+    spec:
+      containers:
+        - name: telemedicine-service
+          image: aurahealth-telemedicine-service:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 5007
+          env:
+            - name: PORT
+              value: "5007"
+            - name: DATABASE_URL
+              value: postgresql://aura_user:aura_pass@telemedicine-db:5432/telemedicine_db
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: aura-secrets
+                  key: JWT_SECRET
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: telemedicine-service
+spec:
+  selector:
+    app: telemedicine-service
+  ports:
+    - port: 5007
+      targetPort: 5007
+  type: ClusterIP
