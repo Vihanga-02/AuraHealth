@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: payment-db-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: payment-db
+  template:
+    metadata:
+      labels:
+        app: payment-db
+    spec:
+      containers:
+        - name: payment-db
+          image: postgres:16-alpine
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: aura-config
+                  key: PAYMENT_DB_NAME
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: aura-secrets
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: aura-secrets
+                  key: POSTGRES_PASSWORD
+          volumeMounts:
+            - name: payment-db-storage
+              mountPath: /var/lib/postgresql/data
+            - name: payment-db-init
+              mountPath: /docker-entrypoint-initdb.d
+      volumes:
+        - name: payment-db-storage
+          persistentVolumeClaim:
+            claimName: payment-db-pvc
+        - name: payment-db-init
+          configMap:
+            name: payment-db-init
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment-db
+spec:
+  selector:
+    app: payment-db
+  ports:
+    - port: 5432
+      targetPort: 5432
+  type: ClusterIP

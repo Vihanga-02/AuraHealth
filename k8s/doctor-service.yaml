@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: doctor-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: doctor-service
+  template:
+    metadata:
+      labels:
+        app: doctor-service
+    spec:
+      containers:
+        - name: doctor-service
+          image: aurahealth-doctor-service:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 5002
+          env:
+            - name: PORT
+              value: "5002"
+            - name: DATABASE_URL
+              value: postgresql://aura_user:aura_pass@doctor-db:5432/doctor_db
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: aura-secrets
+                  key: JWT_SECRET
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: doctor-service
+spec:
+  selector:
+    app: doctor-service
+  ports:
+    - port: 5002
+      targetPort: 5002
+  type: ClusterIP

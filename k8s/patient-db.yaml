@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: patient-db-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: patient-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: patient-db
+  template:
+    metadata:
+      labels:
+        app: patient-db
+    spec:
+      containers:
+        - name: patient-db
+          image: postgres:16-alpine
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: aura-config
+                  key: PATIENT_DB_NAME
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: aura-secrets
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: aura-secrets
+                  key: POSTGRES_PASSWORD
+          volumeMounts:
+            - name: patient-db-storage
+              mountPath: /var/lib/postgresql/data
+            - name: patient-db-init
+              mountPath: /docker-entrypoint-initdb.d
+      volumes:
+        - name: patient-db-storage
+          persistentVolumeClaim:
+            claimName: patient-db-pvc
+        - name: patient-db-init
+          configMap:
+            name: patient-db-init
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: patient-db
+spec:
+  selector:
+    app: patient-db
+  ports:
+    - port: 5432
+      targetPort: 5432
+  type: ClusterIP

@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+    spec:
+      containers:
+        - name: api-gateway
+          image: aurahealth-api-gateway:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 5000
+          env:
+            - name: PORT
+              value: "5000"
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: aura-secrets
+                  key: JWT_SECRET
+            - name: AUTH_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: aura-config
+                  key: AUTH_SERVICE_URL
+            - name: DOCTOR_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: aura-config
+                  key: DOCTOR_SERVICE_URL
+            - name: PATIENT_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: aura-config
+                  key: PATIENT_SERVICE_URL
+            - name: APPOINTMENT_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: aura-config
+                  key: APPOINTMENT_SERVICE_URL
+            - name: PAYMENT_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: aura-config
+                  key: PAYMENT_SERVICE_URL
+            - name: NOTIFICATION_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: aura-config
+                  key: NOTIFICATION_SERVICE_URL
+            - name: TELEMEDICINE_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: aura-config
+                  key: TELEMEDICINE_SERVICE_URL
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway
+spec:
+  selector:
+    app: api-gateway
+  ports:
+    - port: 5000
+      targetPort: 5000
+      nodePort: 30000
+  type: NodePort

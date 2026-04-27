@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: payment-service
+  template:
+    metadata:
+      labels:
+        app: payment-service
+    spec:
+      containers:
+        - name: payment-service
+          image: aurahealth-payment-service:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 5005
+          env:
+            - name: PORT
+              value: "5005"
+            - name: NODE_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: aura-config
+                  key: NODE_ENV
+            - name: DATABASE_URL
+              value: postgresql://aura_user:aura_pass@payment-db:5432/payment_db
+            - name: STRIPE_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: aura-secrets
+                  key: STRIPE_SECRET_KEY
+            - name: STRIPE_WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: aura-secrets
+                  key: STRIPE_WEBHOOK_SECRET
+            - name: INTERNAL_SERVICE_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: aura-secrets
+                  key: INTERNAL_SERVICE_TOKEN
+            - name: APPOINTMENT_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: aura-config
+                  key: APPOINTMENT_SERVICE_URL
+            - name: NOTIFICATION_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: aura-config
+                  key: NOTIFICATION_SERVICE_URL
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment-service
+spec:
+  selector:
+    app: payment-service
+  ports:
+    - port: 5005
+      targetPort: 5005
+  type: ClusterIP

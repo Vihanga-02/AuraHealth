@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: telemedicine-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: telemedicine-service
+  template:
+    metadata:
+      labels:
+        app: telemedicine-service
+    spec:
+      containers:
+        - name: telemedicine-service
+          image: aurahealth-telemedicine-service:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 5007
+          env:
+            - name: PORT
+              value: "5007"
+            - name: DB_HOST
+              value: telemedicine-db
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: aura-config
+                  key: TELEMEDICINE_DB_NAME
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: aura-secrets
+                  key: POSTGRES_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: aura-secrets
+                  key: POSTGRES_PASSWORD
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: aura-secrets
+                  key: JWT_SECRET
+            - name: AGORA_APP_ID
+              valueFrom:
+                secretKeyRef:
+                  name: aura-secrets
+                  key: AGORA_APP_ID
+            - name: AGORA_APP_CERTIFICATE
+              valueFrom:
+                secretKeyRef:
+                  name: aura-secrets
+                  key: AGORA_APP_CERTIFICATE
+            - name: SCHEDULE_TIMEZONE_OFFSET
+              valueFrom:
+                configMapKeyRef:
+                  name: aura-config
+                  key: SCHEDULE_TIMEZONE_OFFSET
+            - name: FRONTEND_BASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: aura-config
+                  key: FRONTEND_BASE_URL
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: telemedicine-service
+spec:
+  selector:
+    app: telemedicine-service
+  ports:
+    - port: 5007
+      targetPort: 5007
+  type: ClusterIP
